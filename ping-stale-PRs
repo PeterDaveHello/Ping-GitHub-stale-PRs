@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+GITHUB_TOKEN=${GITHUB_TOKEN:-}
+OWNER=${OWNER:-}
+REPO=${REPO:-}
+STALE_DAYS=${STALE_DAYS:-}
+CURL="eval curl --silent -H 'Authorization: token ${GITHUB_TOKEN}'"
+COMMENT='{"body": "Any updates here? Thanks!"}'
+DEPENDENCIES="curl grep awk sed jq xargs"
+
+err() { >&2 echo -e "\e[1;31m$@\e[m"; exit 1; }
+
+for DEP in ${DEPENDENCIES}
+do
+    if ! type "${DEP}" &> /dev/null; then
+        err "Dependency - ${DEP} not found!!!"
+    fi
+done
+
+if [ -z "$REPO" ];  then err "REPO not set!"; fi
+if [ -z "$OWNER" ]; then err "repo OWNER not set!"; fi
+if [ -z "$GITHUB_TOKEN" ]; then err "GITHUB_TOKEN not set!"; fi
+
+if ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" &> /dev/null; then
+    err "Pull request list fetching failed, invalid repo owner, name or auth token?"
+fi
+
+NOW="$(date +%s)"
+PAGE=1
+PAGES="$(${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" | grep ^Link | awk -F',' '{print $2}' | sed -e 's/^.*?page=//g' -e 's/>.*$//g')"
+echo "Found $PAGES PR pages ..."
+while [ "${PAGE}" -le "${PAGES}" ]
+do
+    echo "Now on page ${PAGE} ..."
+    for PR in $(${CURL} -o- "https://api.github.com/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}" | jq ' .[] | .number')
+    do
+        updated="$(${CURL} -o- "https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date +%s -d )"
+        if [ $((NOW - updated)) -gt $((86400 * ${STALE_DAYS:-14})) ]; then
+            echo "${PR} stales more than ${STALE_DAYS:-14} days ($(( ( NOW - updated ) / 86400 ))) ... ping the PR now!"
+            if ! ${CURL} -d "'$COMMENT'" "https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR}/comments" > /dev/null; then
+                err "Ping PR ${PR} failed ..."
+            fi
+        else
+            echo "${PR} only stales $(( (NOW - updated) / 86400)) days, exit now!"
+            exit 0
+        fi
+    done
+    PAGE=$((PAGE+1))
+done
