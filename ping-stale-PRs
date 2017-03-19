@@ -29,13 +29,21 @@ if [ -z "$GITHUB_TOKEN" ]; then err "GITHUB_TOKEN not set!"; fi
 if ! ${CURL} -I "https://api.github.com/" -f &> /dev/null; then
     err "$(${CURL} 'https://api.github.com/' | jq .message -r) - Authentication failed!"
 fi
-if ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" -f &> /dev/null; then
-    err "Pull request list fetching failed, invalid repo owner or repo name?"
-fi
 
 NOW="$(date +%s)"
 PAGE=1
 PAGES="$(${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" | grep ^Link | awk -F',' '{print $2}' | sed -e 's/^.*?page=//g' -e 's/>.*$//g')"
+
+if ! ${CURL} -I "https://api.github.com/users/${OWNER}" -f &> /dev/null; then
+    err "Invalid repo owner - ${OWNER} $(${CURL} "https://api.github.com/users/${OWNER}" | jq .message -r)"
+elif ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}" -f &> /dev/null; then
+    err "Invalid repository - ${REPO} $(${CURL} "https://api.github.com/repos/${OWNER}/${REPO}" | jq .message -r)"
+fi
+
+if ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" -f &> /dev/null || [ -z "${PAGES}" ]; then
+    err "Pull request list fetching failed ..."
+fi
+
 echo "Found $PAGES PR pages ..."
 while [ "${PAGE}" -le "${PAGES}" ]
 do
