@@ -7,6 +7,11 @@ STALE_DAYS=${STALE_DAYS:-}
 CURL="eval curl --silent -H 'Authorization: token ${GITHUB_TOKEN}'"
 COMMENT='{"body": "Any updates here? Thanks!"}'
 DEPENDENCIES="curl grep awk sed jq xargs date"
+DATE_PARA='+%s -d'
+
+if [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "FreeBSD" ]; then
+    DATE_PARA='-j -f %Y-%m-%dT%H:%M:%SZ +%s'
+fi
 
 err() { >&2 echo -e "\e[1;31m$@\e[m"; exit 1; }
 
@@ -34,7 +39,7 @@ do
     echo "Now on page ${PAGE} ..."
     for PR in $(${CURL} -o- "https://api.github.com/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}" | jq ' .[] | .number')
     do
-        updated="$(${CURL} -o- "https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date +%s -d )"
+        updated="$(${CURL} -o- "https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date ${DATE_PARA} )"
         if [ $((NOW - updated)) -gt $((86400 * ${STALE_DAYS:-14})) ]; then
             echo "${PR} stales more than ${STALE_DAYS:-14} days ($(( ( NOW - updated ) / 86400 ))) ... ping the PR now!"
             if ! ${CURL} -d "'$COMMENT'" "https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR}/comments" > /dev/null; then
