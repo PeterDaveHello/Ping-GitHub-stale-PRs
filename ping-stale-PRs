@@ -26,8 +26,11 @@ if [ -z "$REPO" ];  then err "REPO not set!"; fi
 if [ -z "$OWNER" ]; then err "repo OWNER not set!"; fi
 if [ -z "$GITHUB_TOKEN" ]; then err "GITHUB_TOKEN not set!"; fi
 
+if ! ${CURL} -I "https://api.github.com/" -f &> /dev/null; then
+    err "$(${CURL} 'https://api.github.com/' | jq .message -r) - Authentication failed!"
+fi
 if ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" -f &> /dev/null; then
-    err "Pull request list fetching failed, invalid repo owner, name or auth token?"
+    err "Pull request list fetching failed, invalid repo owner or repo name?"
 fi
 
 NOW="$(date +%s)"
