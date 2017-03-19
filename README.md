@@ -10,6 +10,7 @@ A tiny bash shell script for any GitHub repository having too many pull reuqests
  - sed
  - [jq](https://stedolan.github.io/jq/)
  - xargs
+ - date
 
 ## Usage
 

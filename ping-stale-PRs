@@ -6,7 +6,7 @@ REPO=${REPO:-}
 STALE_DAYS=${STALE_DAYS:-}
 CURL="eval curl --silent -H 'Authorization: token ${GITHUB_TOKEN}'"
 COMMENT='{"body": "Any updates here? Thanks!"}'
-DEPENDENCIES="curl grep awk sed jq xargs"
+DEPENDENCIES="curl grep awk sed jq xargs date"
 
 err() { >&2 echo -e "\e[1;31m$@\e[m"; exit 1; }
 
