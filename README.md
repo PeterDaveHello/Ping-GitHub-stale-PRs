@@ -26,7 +26,7 @@ You can directly assign/oeverride value to the varible like this(Don't forget CO
 ```sh
 GITHUB_TOKEN=21eb588cda61aa8525421857eca221ef371e4109
 ```
-To run the script, set repository name and repository owner and your [GitHub token](https://github.com/settings/tokens/new?scopes=repo&description=For%20Ping-GitHub-stale-PRs) in the executable file or the environment, e.g.:
+To run the script, set repository name and repository owner and your [GitHub token](https://github.com/settings/tokens/new?scopes=repo&description=For%20Ping-GitHub-stale-PRs) in the executable file or the environment, take https://github.com/cdnjs/cdnjs as example:
 ```sh
 REPO=cdnjs OWNER=cdnjs GITHUB_TOKEN=21eb588cda61aa8525421857eca221ef371e4109 ./ping-stale-PRs
 ```
