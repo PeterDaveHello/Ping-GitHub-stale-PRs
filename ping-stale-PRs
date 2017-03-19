@@ -57,7 +57,7 @@ do
                 err "Ping PR ${PR} failed ..."
             fi
         else
-            echo "${PR} only stales $(( (NOW - updated) / 86400)) days, exit now!"
+            echo "The currently oldest PR ${PR} only stales $(( (NOW - updated) / 86400)) days, not exceed ${STALE_DAYS:-14} days, exit now!"
             exit 0
         fi
     done
