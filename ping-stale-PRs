@@ -26,7 +26,7 @@ if [ -z "$REPO" ];  then err "REPO not set!"; fi
 if [ -z "$OWNER" ]; then err "repo OWNER not set!"; fi
 if [ -z "$GITHUB_TOKEN" ]; then err "GITHUB_TOKEN not set!"; fi
 
-if ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" &> /dev/null; then
+if ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" -f &> /dev/null; then
     err "Pull request list fetching failed, invalid repo owner, name or auth token?"
 fi
 
