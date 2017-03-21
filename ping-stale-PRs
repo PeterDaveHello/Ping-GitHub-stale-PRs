@@ -8,12 +8,17 @@ CURL="eval curl --silent -H 'Authorization: token ${GITHUB_TOKEN}'"
 COMMENT='{"body": "Any updates here? Thanks!"}'
 DEPENDENCIES="curl grep awk sed jq xargs date"
 DATE_PARA='+%s -d'
+START="$(date +%s)"
 
 if [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "FreeBSD" ]; then
     DATE_PARA='-j -f %Y-%m-%dT%H:%M:%SZ +%s'
 fi
 
-err() { >&2 echo -e "\e[1;31m$@\e[m"; exit 1; }
+err() { >&2 echo -e "\e[1;31m$@\e[m"; ping-count; exit 1; }
+
+ping-count() {
+    echo "Pinged ${COUNT:-0} pull requests in $(( $(date +%s) - START )) sec(s)!"
+}
 
 for DEP in ${DEPENDENCIES}
 do
@@ -35,6 +40,7 @@ if ! ${CURL} -I "https://api.github.com/" -f &> /dev/null; then
 fi
 
 NOW="$(date +%s)"
+COUNT=0
 PAGE=1
 PAGES="$(${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" | grep ^Link | awk -F',' '{print $2}' | sed -e 's/^.*?page=//g' -e 's/>.*$//g')"
 
@@ -60,8 +66,10 @@ do
             if ! ${CURL} -d "'$COMMENT'" "https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR}/comments" > /dev/null; then
                 err "Ping PR ${PR} failed ..."
             fi
+            COUNT=$((COUNT+1))
         else
             echo "The currently oldest PR ${PR} only stales $(( (NOW - updated) / 86400)) days, not exceed ${STALE_DAYS} days, exit now!"
+            ping-count
             exit 0
         fi
     done
