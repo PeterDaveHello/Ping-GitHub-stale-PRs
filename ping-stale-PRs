@@ -4,6 +4,7 @@ GITHUB_TOKEN=${GITHUB_TOKEN:-}
 OWNER=${OWNER:-}
 REPO=${REPO:-}
 STALE_DAYS=${STALE_DAYS:-14}
+API_BASE_URL='https://api.github.com'
 CURL="eval curl --silent -H 'Authorization: token ${GITHUB_TOKEN}'"
 COMMENT='{"body": "Any updates here? Thanks!"}'
 DEPENDENCIES="curl grep awk sed jq xargs date"
@@ -35,22 +36,22 @@ if ! [[ $STALE_DAYS =~ ^-?[0-9]+$ ]] || [ $((STALE_DAYS/1)) -ne $STALE_DAYS ] ||
     err "STALE_DAYS needs to be a natural number! (Integer and greater than 0)"
 fi
 
-if ! ${CURL} -I "https://api.github.com/" -f &> /dev/null; then
-    err "$(${CURL} 'https://api.github.com/' | jq .message -r) - Authentication failed!"
+if ! ${CURL} -I "${API_BASE_URL}" -f &> /dev/null; then
+    err "$(${CURL} "${API_BASE_URL}" | jq .message -r) - Authentication failed!"
 fi
 
 NOW="$(date +%s)"
 COUNT=0
 PAGE=1
-PAGES="$(${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" | grep ^Link | awk -F',' '{print $2}' | sed -e 's/^.*?page=//g' -e 's/>.*$//g')"
+PAGES="$(${CURL} -I "${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls" | grep ^Link | awk -F',' '{print $2}' | sed -e 's/^.*?page=//g' -e 's/>.*$//g')"
 
-if ! ${CURL} -I "https://api.github.com/users/${OWNER}" -f &> /dev/null; then
-    err "Invalid repo owner - ${OWNER} $(${CURL} "https://api.github.com/users/${OWNER}" | jq .message -r)"
-elif ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}" -f &> /dev/null; then
-    err "Invalid repository - ${REPO} $(${CURL} "https://api.github.com/repos/${OWNER}/${REPO}" | jq .message -r)"
+if ! ${CURL} -I "${API_BASE_URL}/users/${OWNER}" -f &> /dev/null; then
+    err "Invalid repo owner - ${OWNER} $(${CURL} "${API_BASE_URL}/users/${OWNER}" | jq .message -r)"
+elif ! ${CURL} -I "${API_BASE_URL}/repos/${OWNER}/${REPO}" -f &> /dev/null; then
+    err "Invalid repository - ${REPO} $(${CURL} "${API_BASE_URL}/repos/${OWNER}/${REPO}" | jq .message -r)"
 fi
 
-if ! ${CURL} -I "https://api.github.com/repos/${OWNER}/${REPO}/pulls" -f &> /dev/null || [ -z "${PAGES}" ]; then
+if ! ${CURL} -I "${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls" -f &> /dev/null || [ -z "${PAGES}" ]; then
     err "Pull request list fetching failed ..."
 fi
 
@@ -58,12 +59,12 @@ echo "Found $PAGES PR pages ..."
 while [ "${PAGE}" -le "${PAGES}" ]
 do
     echo "Now on page ${PAGE} ..."
-    for PR in $(${CURL} -o- "https://api.github.com/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}" | jq ' .[] | .number')
+    for PR in $(${CURL} -o- "${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}" | jq ' .[] | .number')
     do
-        updated="$(${CURL} -o- "https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date ${DATE_PARA} )"
+        updated="$(${CURL} -o- "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date ${DATE_PARA} )"
         if [ $((NOW - updated)) -gt $((86400 * ${STALE_DAYS})) ]; then
             echo "${PR} stales more than ${STALE_DAYS} days ($(( ( NOW - updated ) / 86400 ))) ... ping the PR now!"
-            if ! ${CURL} -d "'$COMMENT'" "https://api.github.com/repos/${OWNER}/${REPO}/issues/${PR}/comments" > /dev/null; then
+            if ! ${CURL} -d "'$COMMENT'" "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}/comments" > /dev/null; then
                 err "Ping PR ${PR} failed ..."
             fi
             COUNT=$((COUNT+1))
