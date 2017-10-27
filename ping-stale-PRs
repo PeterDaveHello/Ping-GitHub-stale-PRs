@@ -56,7 +56,7 @@ echo "Found $PAGES PR pages ..."
 while [ "${PAGE}" -le "${PAGES}" ]
 do
     echo "Now on page ${PAGE} ..."
-    for PR in $(${CURL} -o- "${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}" | jq ' .[] | .number')
+    for PR in $(${CURL} -o- "'${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}'" | jq ' .[] | .number')
     do
         updated="$(${CURL} -o- "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date ${DATE_PARA} )"
         if [ $((NOW - updated)) -gt $((86400 * ${STALE_DAYS})) ]; then
