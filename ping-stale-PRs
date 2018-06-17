@@ -12,7 +12,7 @@ if [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "FreeBSD" ]; then
     DATE_PARA='-j -f %Y-%m-%dT%H:%M:%SZ +%s'
 fi
 
-err() { >&2 echo -e "\e[1;31m$@\e[m"; ping-count; exit 1; }
+err() { >&2 echo -e "\\e[1;31m$*\\e[m"; ping-count; exit 1; }
 
 ping-count() {
     echo "Pinged ${COUNT:-0} pull requests in $(( $(date +%s) - START )) sec(s)!"
@@ -29,7 +29,7 @@ if [ -z "$REPO" ];  then err "REPO not set!"; fi
 if [ -z "$OWNER" ]; then err "repo OWNER not set!"; fi
 if [ -z "$GITHUB_TOKEN" ]; then err "GITHUB_TOKEN not set!"; fi
 
-if ! [[ $STALE_DAYS =~ ^-?[0-9]+$ ]] || [ $((STALE_DAYS/1)) -ne $STALE_DAYS ] || [ $STALE_DAYS -lt 0 ]; then
+if ! [[ "$STALE_DAYS" =~ ^-?[0-9]+$ ]] || [ $((STALE_DAYS/1)) -ne "$STALE_DAYS" ] || [ "$STALE_DAYS" -lt 0 ]; then
     err "STALE_DAYS needs to be a natural number! (Integer and greater than 0)"
 fi
 
@@ -58,8 +58,8 @@ do
     echo "Now on page ${PAGE} ..."
     for PR in $(${CURL} -o- "'${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}'" | jq ' .[] | .number')
     do
-        updated="$(${CURL} -o- "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date ${DATE_PARA} )"
-        if [ $((NOW - updated)) -gt $((86400 * ${STALE_DAYS})) ]; then
+        updated="$(${CURL} -o- "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date "${DATE_PARA}" )"
+        if [ $((NOW - updated)) -gt $((86400 * STALE_DAYS)) ]; then
             echo "${PR} stales more than ${STALE_DAYS} days ($(( ( NOW - updated ) / 86400 ))) ... ping the PR now!"
             if ! ${CURL} -d "'$COMMENT'" "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}/comments" > /dev/null; then
                 err "Ping PR ${PR} failed ..."
