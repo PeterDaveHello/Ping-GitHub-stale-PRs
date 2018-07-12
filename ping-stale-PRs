@@ -9,23 +9,23 @@ DATE_PARA='+%s -d'
 START="$(date +%s)"
 
 if [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "FreeBSD" ]; then
-    DATE_PARA='-j -f %Y-%m-%dT%H:%M:%SZ +%s'
+  DATE_PARA='-j -f %Y-%m-%dT%H:%M:%SZ +%s'
 fi
 
 err() {
-    echo >&2 -e "\\e[1;31m$*\\e[m"
-    ping-count
-    exit 1
+  echo >&2 -e "\\e[1;31m$*\\e[m"
+  ping-count
+  exit 1
 }
 
 ping-count() {
-    echo "Pinged ${COUNT:-0} pull requests in $(($(date +%s) - START)) sec(s)!"
+  echo "Pinged ${COUNT:-0} pull requests in $(($(date +%s) - START)) sec(s)!"
 }
 
 for DEP in ${DEPENDENCIES}; do
-    if ! type "${DEP}" &> /dev/null; then
-        err "Dependency - ${DEP} not found!!!"
-    fi
+  if ! type "${DEP}" &> /dev/null; then
+    err "Dependency - ${DEP} not found!!!"
+  fi
 done
 
 if [ -z "$REPO" ]; then err "REPO not set!"; fi
@@ -33,11 +33,11 @@ if [ -z "$OWNER" ]; then err "repo OWNER not set!"; fi
 if [ -z "$GITHUB_TOKEN" ]; then err "GITHUB_TOKEN not set!"; fi
 
 if ! [[ "$STALE_DAYS" =~ ^-?[0-9]+$ ]] || [ $((STALE_DAYS / 1)) -ne "$STALE_DAYS" ] || [ "$STALE_DAYS" -lt 0 ]; then
-    err "STALE_DAYS needs to be a natural number! (Integer and greater than 0)"
+  err "STALE_DAYS needs to be a natural number! (Integer and greater than 0)"
 fi
 
 if ! ${CURL} -I "${API_BASE_URL}" -f &> /dev/null; then
-    err "$(${CURL} "${API_BASE_URL}" | jq .message -r) - Authentication failed!"
+  err "$(${CURL} "${API_BASE_URL}" | jq .message -r) - Authentication failed!"
 fi
 
 NOW="$(date +%s)"
@@ -46,31 +46,31 @@ PAGE=1
 PAGES="$(${CURL} -I "${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls" | grep ^Link | awk -F',' '{print $2}' | sed -e 's/^.*?page=//g' -e 's/>.*$//g')"
 
 if ! ${CURL} -I "${API_BASE_URL}/users/${OWNER}" -f &> /dev/null; then
-    err "Invalid repo owner - ${OWNER} $(${CURL} "${API_BASE_URL}/users/${OWNER}" | jq .message -r)"
+  err "Invalid repo owner - ${OWNER} $(${CURL} "${API_BASE_URL}/users/${OWNER}" | jq .message -r)"
 elif ! ${CURL} -I "${API_BASE_URL}/repos/${OWNER}/${REPO}" -f &> /dev/null; then
-    err "Invalid repository - ${REPO} $(${CURL} "${API_BASE_URL}/repos/${OWNER}/${REPO}" | jq .message -r)"
+  err "Invalid repository - ${REPO} $(${CURL} "${API_BASE_URL}/repos/${OWNER}/${REPO}" | jq .message -r)"
 fi
 
 if ! ${CURL} -I "${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls" -f &> /dev/null || [ -z "${PAGES}" ]; then
-    err "Pull request list fetching failed ..."
+  err "Pull request list fetching failed ..."
 fi
 
 echo "Found $PAGES PR pages ..."
 while [ "${PAGE}" -le "${PAGES}" ]; do
-    echo "Now on page ${PAGE} ..."
-    for PR in $(${CURL} -o- "'${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}'" | jq ' .[] | .number'); do
-        updated="$(${CURL} -o- "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date "${DATE_PARA}")"
-        if [ $((NOW - updated)) -gt $((86400 * STALE_DAYS)) ]; then
-            echo "${PR} stales more than ${STALE_DAYS} days ($(((NOW - updated) / 86400))) ... ping the PR now!"
-            if ! ${CURL} -d "'$COMMENT'" "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}/comments" > /dev/null; then
-                err "Ping PR ${PR} failed ..."
-            fi
-            COUNT=$((COUNT + 1))
-        else
-            echo "The currently oldest PR ${PR} only stales $(((NOW - updated) / 86400)) days, not exceed ${STALE_DAYS} days, exit now!"
-            ping-count
-            exit 0
-        fi
-    done
-    PAGE=$((PAGE + 1))
+  echo "Now on page ${PAGE} ..."
+  for PR in $(${CURL} -o- "'${API_BASE_URL}/repos/${OWNER}/${REPO}/pulls?sort=updated&direction=asc&page=${PAGE}'" | jq ' .[] | .number'); do
+    updated="$(${CURL} -o- "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}" | jq -r .updated_at | xargs date "${DATE_PARA}")"
+    if [ $((NOW - updated)) -gt $((86400 * STALE_DAYS)) ]; then
+      echo "${PR} stales more than ${STALE_DAYS} days ($(((NOW - updated) / 86400))) ... ping the PR now!"
+      if ! ${CURL} -d "'$COMMENT'" "${API_BASE_URL}/repos/${OWNER}/${REPO}/issues/${PR}/comments" > /dev/null; then
+        err "Ping PR ${PR} failed ..."
+      fi
+      COUNT=$((COUNT + 1))
+    else
+      echo "The currently oldest PR ${PR} only stales $(((NOW - updated) / 86400)) days, not exceed ${STALE_DAYS} days, exit now!"
+      ping-count
+      exit 0
+    fi
+  done
+  PAGE=$((PAGE + 1))
 done
