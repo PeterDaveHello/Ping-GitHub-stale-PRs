@@ -1,5 +1,4 @@
-Ping-GitHub-stale-PRs
-=======
+# Ping-GitHub-stale-PRs
 
 A tiny bash shell script for any GitHub repository having too many pull reuqests that can't manually check and ping the stale PRs.
 
