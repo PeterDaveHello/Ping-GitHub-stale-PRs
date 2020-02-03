@@ -3,7 +3,7 @@
 STALE_DAYS=${STALE_DAYS:-14}
 API_BASE_URL='https://api.github.com'
 CURL="eval curl --silent -H 'Authorization: token ${GITHUB_TOKEN}'"
-COMMENT='{"body": "Any updates here? Thanks!"}'
+COMMENT='{"body": "Any updates here? Please let me know if you need any help. Thank you for the contribution! \n\n (This is an automatic ping message, sorry for disturbing, we will get back here ASAP once there is any update.) \n\n "}'
 DEPENDENCIES="curl grep awk sed jq xargs date"
 DATE_PARA='+%s -d'
 START="$(date +%s)"
